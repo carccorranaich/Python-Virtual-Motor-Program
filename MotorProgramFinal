@@ -1,0 +1,115 @@
+#Program: Motor program, Author: Andrew Redford, Date:  19/3/24
+#Notes: This same python code will compile and run on Linux or Windows as required in specification of this task.
+#I have left a few comments in to show how i tested, and comments to explain the program too.
+ 
+#import libraries  
+import time # useful for calculating time elapsed for main motor  position calculation function.
+import math # to truncate floats for a for loop.
+
+#initialize variables
+#The initial position of the motor and velocity of the motor are zero.
+motorPosition=0.0
+motorVelocity=0.0
+userInput = ""
+firstTime=True
+elapsed_time=0 #used in the time elaped calculation.
+t=0 #used in the time elaped calculation.
+
+#function to check int string float for what is passed to it. 
+#Necessary to ensure comment displays when invalid entry occurs.
+def intStrOrFloat(input):
+    try:
+        # Convert to int
+        val = int(input)
+    except ValueError:
+        try:
+            # Convert to float
+            val = float(input)
+        except ValueError:
+            val = "string"
+    return val
+
+#main function to calculate position.
+def calculatePosition(motorPosition,motorVelocity,t):
+    theoreticalMotorPosition=0 #var helps check whether motor would go beyond limits before setting actual motor.
+    #start timer
+    elapsed_time = time.process_time() - t
+    
+    #find number of tenth of a second time segments that have elapsed .
+    forLoopIterations = (elapsed_time) / 0.01   
+    
+    #make timeSegments into a round number divisible by 0.1
+    forLoopIterations = round(forLoopIterations,1)
+    forLoopIterations = math.trunc(forLoopIterations)
+    
+    #for loop calculating position.
+    #equivalent of doing calculation every tenth of a second.
+    for x in range(forLoopIterations):
+        #note: formula for calculating the position of moving object: 
+        #final position = initial position + (velocity * time)
+        theoreticalMotorPosition = motorPosition + (motorVelocity * 0.1)
+        if theoreticalMotorPosition > 0 and theoreticalMotorPosition < 1000:
+            motorPosition = theoreticalMotorPosition
+        elif theoreticalMotorPosition < 0:
+            motorPosition = 0
+            motorVelocity = 0
+        elif theoreticalMotorPosition > 1000:
+            motorPosition = 1000
+        #reset timer
+        t = time.process_time()
+    return motorPosition,motorVelocity,t
+
+
+#Main while loop:
+#keeps the program going until user quits with whatever "quit" is in the environment they are running this on. 
+while True: #testing: change to "while userInput != "quit":" to make this consistent to quit on all platforms.
+    #get user entry at command line
+    userInput=input("")
+    
+    #check velocity entry
+    if userInput[0:2] == "v=":
+    #call function to check velocity entry is string float or int (we want do not want a string. The user entry
+    #"v=sometext" could be entered by mistake so I am checking for it).
+        veloValue=intStrOrFloat(userInput[2:]) 
+    
+    #check velocity entry
+    if (userInput[0:2] == "v=" and veloValue != "string") and (userInput[0:3] != "v=0"):
+    #call function to check entry with velocity is string float or int (we want int or float).
+        velocValue=intStrOrFloat(userInput[2:]) 
+       
+        #start timer first time this runs only within this "if".
+        if firstTime == True:
+            t = time.process_time()
+            firstTime=False
+
+        #set velocity to user input and calculate position.
+        motorVelocity=velocValue
+        motorPosition,motorVelocity,t = calculatePosition(motorPosition,motorVelocity,t)
+
+    #for when user queries motor position.
+    elif userInput == "p?":
+        if motorVelocity != 0: #if velocity is non zero we must update position using current non-zero velocity. 
+            motorPosition,motorVelocity,t = calculatePosition(motorPosition,motorVelocity,t)
+        print(f"p={round(motorPosition, 1)}") #round result to one decimal place.
+        
+    #user queries velocity
+    elif userInput == "v?":
+        #give velocity to single decimal place eg. v=32.4
+        print(f"v={motorVelocity}")
+            
+    #go ahead if user input is valid
+    elif (userInput == "stop" or userInput == "v=0" or userInput == "v?" or userInput == "p?"):
+        #when stop is entered or velocity value zero is entered calculate final position.
+        if (userInput == "stop" or userInput == "v=0"): #position must stop updating now.
+            #calculate position before setting velocity to zero.
+            motorPosition,motorVelocity,t = calculatePosition(motorPosition,motorVelocity,t)
+            #reset flag so that time segments go from zero next time a velocity that's not zero is entered.
+            firstTime=True
+            #reset timer
+            t = time.process_time()
+            #set motor velocity to zero.
+            motorVelocity=0
+            
+    #else it was not recognised input so tell user that.
+    else:
+        print("Unknown command sorry")
